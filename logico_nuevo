@@ -1,0 +1,190 @@
+import time
+import math
+import threading
+
+
+### HELPER FUNCTIONS 
+
+def funxvec(funx, vec):
+  v=[]
+  for i in range(len(vec)):
+    v.append(  funx( vec[i] )  )
+  return v
+
+def intize(v):
+  '''<Python List>
+  Mutates that list so every element therein is an int'''
+  for i in range(len(v)):
+    v[i] = int(v[i])
+
+def floatize(v):
+  '''<Python list>
+  Mutates that list to convert every element float data type'''
+  for i in range(len(v)):
+    v[i] = float( v[i] )
+
+
+def zeros(size):
+  '''<Positive int>
+  Returns vector (Python list) containing <size> 0's'''
+  v=[]
+  for i in range(size):
+    v.append(0)
+  return v
+
+def ones(size):
+  '''<Positive int>
+  Returns vector (Python list) containng <size> 1's'''
+  v=[]
+  for i in range(size):
+    v.append(1)
+  return v
+
+def copy(v): 
+  '''<Python list>
+  Copies that list, and returns the result'''
+  v_new = []
+  for i in range(len(v)):
+    v_new.append(v[i])
+  return v_new
+
+def to_vec(x, size):
+  '''<positive int> to be converted into binary vector, <int> representing size of the vector
+  Returns vector of bits representing that number in binary, with most significant bit at 0th index'''
+  vec = zeros(size)
+  for i in range(size):
+    bit_i = int(x / (2 ** (i)) )
+    vec[i] = bit_i % 2
+  vec.reverse()
+  return vec
+
+def to_int(vec):
+  '''Reverse of to_vec( int )
+  Converts vector of bits representing binary number
+  into that binary number as an int'''
+  y_int = 0
+  v=copy(vec)
+  for i in range(len(v)):
+    if v[i]:
+      y_int += 2**i
+  return int( y_int )
+
+def test_matrix(size):
+  '''<Int> representing number of binary inputs to an entity
+  Returns nested list of every possible binary number you can make with that many breakpointin numerical order, in other words, a matrix of bits for a testbench'''
+  m=[]
+  for i in range(2**size):
+    v=to_vec(i, size)
+    m.append(v)
+  return m
+
+
+### Entity class
+class Entity:
+
+  def __init__(self, arch, initial_sig):
+    '''<Python function> representing archotecture, <Initial Input> for logic cirrcuit
+    Instantiates an object which can act similarly as an module or entity in VHDL
+    '''
+    self.arch, self.in_sig = arch, initial_sig
+    self.out_sig=self.arch(self.in_sig)
+    self.in_size = len(self.in_sig)
+    self.name = "entity"+""
+
+  def sweep(self):
+    self.out_sig = self.arch(self.in_sig)
+  
+  def feed(self, new_sig):
+    self.in_sig = new_sig
+    self.sweep() 
+
+  def copy(self):
+    return Entity(self.arch, self.in_sig)
+
+  def rename(self, strega):
+    '''<String> representing new name for this object
+    Gives this object a new name'''
+    self.name = strega
+    self.sweep()
+
+  def copy_name(self, strega):
+    '''String> representing name of new object
+    Copies this object and gives it a new name'''
+    baby = self.copy()
+    baby.rename(strega)
+    return baby
+  
+  def test(self, test_sig):
+    self.feed(test_sig)
+    strega = "Input Signal = "+str(self.in_sig)
+    strega+=" ,   Output Signal = "+str(self.out_sig)+" \n\n"
+    print(strega)
+
+  def testbench(self, sig_vec, delta_t):
+    for i in range(len(sig_vec)):
+      self.test(sig_vec[i])
+      time.sleep(delta_t)
+
+  def tb(self, delta_t): 
+    sig_vec = test_matrix(self.in_size)
+    #print(str(sig_vec))
+    self.testbench(sig_vec, delta_t)
+
+  def tostring(self):
+    strega=""
+    strega+="Entity   "+self.name+"   has these instance variables:\n"
+    strega+="self.in_sig = "+str(self.in_sig)+" \nself.out_sig = "+str(self.out_sig)+"\n"
+    strega+="END Entity   "+self.name+"   instance variables\n\n"
+    return strega
+
+  def report(self):
+    print(self.tostring())
+
+  
+
+### POSSIBLE ARCH FUNCTIONS for entity objects
+def nand_arch(v):
+  q=not (v[0] and v[1])
+  return q
+
+def archie(v):
+  print("v = "+str(v)+"\n\n")
+  if v[0]:
+    return [1,0,0]
+  elif v[1]:
+    return [0,1,0]
+  elif v[2]:
+    return [0,0,1]
+  else:
+    return [0,0,0]
+
+def adder_arch(v):
+  vrev=copy(v) 
+  vrev.reverse()
+  a, b, cin = vrev[2], vrev[1], vrev[0] #cin is carry-in, other two bits are 
+  ab, axorb = (a and b), (a != b)
+  axbac = axorb and cin
+  cout = ab or axbac #carry-out bit
+  s = (axorb != cin) #sum bit
+  v_out = [cout, s]
+  intize(v_out)
+  return v_out
+
+
+
+
+
+
+
+  
+
+### TESTING SECTION
+
+
+florida = [math.pi, 8.9, 0.04]
+idaho = [1, 0, 0x57]
+
+intize(florida)
+floatize(idaho)
+print("florida = "+str(florida))
+print("\nidaho = "+str(idaho))
